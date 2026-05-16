@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JioTV+ Web Player</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+</head>
+<body class="bg-gray-900 text-white font-sans">
+
+    <div id="login-box" class="max-w-md mx-auto mt-20 p-6 bg-gray-800 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-bold mb-4 text-center text-pink-500">JioTV Login</h2>
+        
+        <div id="alert-msg" class="hidden mb-4 p-2 bg-red-600 text-sm rounded text-center"></div>
+
+        <div id="step-mobile">
+            <label class="block mb-2 text-sm">Enter Jio Mobile Number</label>
+            <input type="text" id="mobile-num" placeholder="+91xxxx" class="w-full p-2 rounded bg-gray-700 text-white mb-4 outline-none border border-gray-600 focus:border-pink-500">
+            <button onclick="sendOTP()" class="w-full bg-pink-600 hover:bg-pink-700 p-2 rounded font-bold transition">Send OTP</button>
+        </div>
+
+        <div id="step-otp" class="hidden">
+            <label class="block mb-2 text-sm">Enter OTP</label>
+            <input type="text" id="otp-code" placeholder="Enter 6-digit OTP" class="w-full p-2 rounded bg-gray-700 text-white mb-4 outline-none border border-gray-600 focus:border-pink-500">
+            <button onclick="verifyOTP()" class="w-full bg-green-600 hover:bg-green-700 p-2 rounded font-bold transition">Verify & Login</button>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto mt-10 p-4">
+        <h1 class="text-3xl font-bold mb-4 text-center">Live Streaming</h1>
+        <div class="bg-black rounded-lg overflow-hidden shadow-2xl">
+            <video id="player" controls crossorigin playsinline class="w-full h-96"></video>
+        </div>
+        
+        <div class="mt-6 text-center">
+            <p class="text-gray-400 mb-2">Your M3U Playlist Link:</p>
+            <code id="playlist-link" class="bg-gray-800 px-4 py-2 rounded text-pink-400 font-mono text-sm block break-all">Loading...</code>
+        </div>
+
+        <div class="mt-8 grid grid-cols-2 gap-4 max-w-md mx-auto">
+            <button onclick="playStream('/live/Asianet_HD.m3u8')" class="bg-gray-800 hover:bg-gray-700 p-4 rounded font-bold text-lg border border-gray-700">Asianet HD</button>
+            <button onclick="playStream('/live/Surya_TV_HD.m3u8')" class="bg-gray-800 hover:bg-gray-700 p-4 rounded font-bold text-lg border border-gray-700">Surya TV HD</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script>
+        document.getElementById('playlist-link').innerText = window.location.origin + "/playlist.m3u";
+        const video = document.getElementById('player');
+        const plyr = new Plyr(video);
+
+        function playStream(url) {
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(url);
+                hls.attachMedia(video);
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+            }
+        }
+
+        async function sendOTP() {
+            const mobile = document.getElementById('mobile-num').value;
+            showAlert(false);
+            const res = await fetch('/api/send-otp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mobile: mobile})
+            });
+            const data = await res.json();
+            if(data.status === "success" || data.message === "OTP sent successfully") {
+                document.getElementById('step-mobile').classList.add('hidden');
+                document.getElementById('step-otp').classList.remove('hidden');
+            } else {
+                showAlert(data.message || "Error sending OTP");
+            }
+        }
+
+        async function verifyOTP() {
+            const mobile = document.getElementById('mobile-num').value;
+            const otp = document.getElementById('otp-code').value;
+            showAlert(false);
+            const res = await fetch('/api/verify-otp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mobile: mobile, otp: otp})
+            });
+            const data = await res.json();
+            if(data.status === "success") {
+                document.getElementById('login-box').innerHTML = "<p class='text-green-500 font-bold text-center'>✓ Successfully Logged In!</p>";
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert(data.message || "Invalid OTP");
+            }
+        }
+
+        function showAlert(msg) {
+            const box = document.getElementById('alert-msg');
+            if(msg) {
+                box.innerText = msg;
+                box.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+              </html>
+              
