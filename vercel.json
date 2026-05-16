@@ -1,5 +1,9 @@
 {
+  "version": 2,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index" }
+    { "source": "/", "destination": "/public/index.html" },
+    { "source": "/api/(.*)", "destination": "/api/index.py" },
+    { "source": "/playlist.m3u", "destination": "/api/index.py" },
+    { "source": "/live/(.*)", "destination": "/api/index.py" }
   ]
 }
