@@ -3,6 +3,7 @@ from flask import Flask, Response, request, render_template_string
 
 app = Flask(__name__)
 
+# ⚠️ നിങ്ങളുടെ ടോക്കണുകൾ ഉള്ള ശരിയായ JSON ലിങ്ക് ഇവിടെ നൽകുക
 CREDS_URL = "http://jiologin.unaux.com/temp/-creds.json?i=1"
 
 HTML_TEMPLATE = """
@@ -11,7 +12,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Live TV Player</title>
+    <title>JioTV Player</title>
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
         body { background-color: #111; color: #fff; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
@@ -22,7 +23,7 @@ HTML_TEMPLATE = """
     </style>
 </head>
 <body>
-    <h1>Live TV Simple Player</h1>
+    <h1>JioTV Vercel Player</h1>
     <div class="player-container">
         <video id="player" controls crossorigin playsinline></video>
     </div>
@@ -46,7 +47,6 @@ HTML_TEMPLATE = """
             }
             video.play();
         }
-        document.addEventListener('DOMContentLoaded', () => { const player = new Plyr(video); });
     </script>
 </body>
 </html>
@@ -69,21 +69,21 @@ def index():
 def generate_playlist():
     creds = get_live_creds()
     if not creds:
-        return "Failed to fetch credentials from source", 500
+        return "Failed to fetch credentials from external API", 500
     
-    # Vercel-ൽ കൃത്യമായ HTTPS ലിങ്ക് കിട്ടാൻ ഇത് സഹായിക്കും
     protocol = request.headers.get('X-Forwarded-Proto', 'https')
     host_url = f"{protocol}://{request.host}/"
     
-    m3u_content = "#EXTM3U\n"
+    m3u_content = "#EXTM3U x-tvg-url=\"https://avapi.live/epg/jiotv.xml.gz\"\n"
     
+    # Asianet HD
     m3u_content += '#EXTINF:-1 tvg-id="144" tvg-logo="https://jiotv.catchup.cdn.jio.com/dare_images/images/Asianet_HD.png" group-title="Malayalam",Asianet HD\n'
     m3u_content += f"{host_url}live/Asianet_HD.m3u8?id=144\n"
     
+    # Surya TV HD
     m3u_content += '#EXTINF:-1 tvg-id="150" tvg-logo="https://jiotv.catchup.cdn.jio.com/dare_images/images/Surya_TV_HD.png" group-title="Malayalam",Surya TV HD\n'
     m3u_content += f"{host_url}live/Surya_TV_HD.m3u8?id=150\n"
     
-    # M3U പ്ലേലിസ്റ്റുകൾക്ക് കൂടുതൽ അനുയോജ്യമായ മോട്ടോർ ടൈപ്പ് നൽകി
     return Response(m3u_content, mimetype='application/x-mpegurl')
 
 @app.route('/live/<channel_name>.m3u8')
