@@ -5,7 +5,6 @@ app = Flask(__name__)
 
 CREDS_URL = "http://jiologin.unaux.com/temp/-creds.json?i=1"
 
-# Frontend Player HTML ഇവിടെ നേരിട്ട് നൽകുന്നു (Vercel-ൽ എളുപ്പത്തിൽ ലോഡ് ആകാൻ)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -70,9 +69,12 @@ def index():
 def generate_playlist():
     creds = get_live_creds()
     if not creds:
-        return "Failed to fetch credentials", 500
+        return "Failed to fetch credentials from source", 500
     
-    host_url = request.host_url
+    # Vercel-ൽ കൃത്യമായ HTTPS ലിങ്ക് കിട്ടാൻ ഇത് സഹായിക്കും
+    protocol = request.headers.get('X-Forwarded-Proto', 'https')
+    host_url = f"{protocol}://{request.host}/"
+    
     m3u_content = "#EXTM3U\n"
     
     m3u_content += '#EXTINF:-1 tvg-id="144" tvg-logo="https://jiotv.catchup.cdn.jio.com/dare_images/images/Asianet_HD.png" group-title="Malayalam",Asianet HD\n'
@@ -81,13 +83,14 @@ def generate_playlist():
     m3u_content += '#EXTINF:-1 tvg-id="150" tvg-logo="https://jiotv.catchup.cdn.jio.com/dare_images/images/Surya_TV_HD.png" group-title="Malayalam",Surya TV HD\n'
     m3u_content += f"{host_url}live/Surya_TV_HD.m3u8?id=150\n"
     
-    return Response(m3u_content, mimetype='application/vnd.apple.mpegurl')
+    # M3U പ്ലേലിസ്റ്റുകൾക്ക് കൂടുതൽ അനുയോജ്യമായ മോട്ടോർ ടൈപ്പ് നൽകി
+    return Response(m3u_content, mimetype='application/x-mpegurl')
 
 @app.route('/live/<channel_name>.m3u8')
 def live_stream(channel_name):
     creds = get_live_creds()
     if not creds:
-        return "Auth failed", 401
+        return "Auth failed - No credentials available", 401
     
     auth_token = creds.get("authToken")
     j_token = creds.get("jToken")
@@ -107,4 +110,3 @@ def live_stream(channel_name):
         return Response(res.content, mimetype='application/vnd.apple.mpegurl')
     except Exception as e:
         return str(e), 500
-                                
